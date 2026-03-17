@@ -534,6 +534,60 @@ function OfframpTab({isConnected,openConnectModal,setTab,testnet}){
       }
       <div style={{textAlign:"center",marginTop:10,fontSize:11,color:"#2a3568"}}>Funds go directly to your bank · Powered by Sardine, Ramp, Transak, Coinbase & Stripe</div>
       {showModal&&<RampModal amount={amt} onClose={()=>setShowModal(false)}/>}
+
+      {/* ── Alerts Modal ── */}
+      {showAlerts&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(2,4,12,.85)",backdropFilter:"blur(14px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}} onClick={e=>e.target===e.currentTarget&&setShowAlerts(false)}>
+          <div style={{background:"#090d1b",border:"1px solid rgba(255,255,255,.09)",borderRadius:22,padding:28,width:"100%",maxWidth:420,position:"relative",animation:"popIn .18s ease"}}>
+            <button onClick={()=>setShowAlerts(false)} style={{position:"absolute",top:14,right:14,width:28,height:28,borderRadius:8,background:"rgba(255,255,255,.06)",border:"none",color:"#5a6280",fontSize:17,cursor:"pointer"}}>×</button>
+            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+              <div style={{width:42,height:42,borderRadius:12,background:"rgba(79,255,176,.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>🔔</div>
+              <div>
+                <h3 style={{margin:0,fontSize:18,fontWeight:900,color:"#dde0f0"}}>Position Alerts</h3>
+                <p style={{margin:0,fontSize:12,color:"#4a5580"}}>Get notified before things go wrong</p>
+              </div>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:20}}>
+              {[
+                {icon:"🚨",label:"Liquidation Danger",desc:"Alert when health factor drops below 1.2",clr:"#ff4444"},
+                {icon:"⚠️",label:"Health Factor Warning",desc:"Alert when health factor drops below 1.5",clr:"#f0b429"},
+                {icon:"📊",label:"Weekly Summary",desc:"Your position performance every 7 days",clr:"#4fffb0"},
+                {icon:"📈",label:"Rate Change",desc:"Alert when Aave borrow rate moves ±0.5%",clr:"#00d4ff"},
+                {icon:"📉",label:"Collateral Price Drop",desc:"Alert when ETH/BTC drops more than 10%",clr:"#9945FF"},
+              ].map((a,i)=>(
+                <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"rgba(255,255,255,.03)",borderRadius:10,border:"1px solid rgba(255,255,255,.06)"}}>
+                  <span style={{fontSize:18,width:24,textAlign:"center"}}>{a.icon}</span>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:13,fontWeight:700,color:a.clr}}>{a.label}</div>
+                    <div style={{fontSize:11,color:"#2a3568"}}>{a.desc}</div>
+                  </div>
+                  <div style={{width:8,height:8,borderRadius:"50%",background:a.clr,flexShrink:0}}/>
+                </div>
+              ))}
+            </div>
+            {alertStatus==="success"?(
+              <div style={{padding:16,background:"rgba(79,255,176,.08)",border:"1px solid rgba(79,255,176,.3)",borderRadius:12,textAlign:"center"}}>
+                <div style={{fontSize:28,marginBottom:8}}>✅</div>
+                <div style={{fontSize:15,fontWeight:800,color:"#4fffb0",marginBottom:4}}>Alerts Activated!</div>
+                <div style={{fontSize:12,color:"#4a5580"}}>Check your inbox for a confirmation email</div>
+              </div>
+            ):(
+              <>
+                <div style={{marginBottom:10}}>
+                  <label style={{fontSize:12,color:"#4a5580",display:"block",marginBottom:6}}>YOUR EMAIL ADDRESS</label>
+                  <input type="email" placeholder="you@example.com" value={alertEmail} onChange={e=>setAlertEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&subscribeAlerts()} style={{width:"100%",background:"rgba(255,255,255,.04)",border:`1px solid ${alertStatus==="error"?"#ff4444":"rgba(255,255,255,.1)"}`,borderRadius:10,padding:"12px 14px",color:"#dde0f0",fontSize:14,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+                  {alertStatus==="error"&&<p style={{margin:"6px 0 0",fontSize:11,color:"#ff4444"}}>Please enter a valid email address</p>}
+                </div>
+                {!isConnected&&<p style={{fontSize:12,color:"#f0b429",marginBottom:10}}>⚠️ Connect your wallet first to link alerts to your position</p>}
+                <button onClick={subscribeAlerts} disabled={alertStatus==="loading"} style={{width:"100%",padding:13,background:"#4fffb0",color:"#04060f",border:"none",borderRadius:11,fontSize:14,fontWeight:800,cursor:"pointer",fontFamily:"inherit",opacity:alertStatus==="loading"?0.6:1}}>
+                  {alertStatus==="loading"?"Setting up alerts…":"🔔 Activate All Alerts →"}
+                </button>
+                <p style={{margin:"10px 0 0",fontSize:11,color:"#1e2540",textAlign:"center"}}>Free forever · No spam · Unsubscribe anytime</p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -851,6 +905,9 @@ export default function RefiFi(){
   const [qty,setQty]      = useState(10);
   const [proto,setProto]  = useState("morpho");
   const [showRM,setShowRM]= useState(false);
+  const [showAlerts,setShowAlerts] = useState(false);
+  const [alertEmail,setAlertEmail] = useState('');
+  const [alertStatus,setAlertStatus] = useState(null); // null | 'loading' | 'success' | 'error'
   const [rates,setRates]  = useState({aave:2.87,morpho:2.42,compound:3.10,src:"Loading",ts:0});
   const [prices,setPrices]= useState({eth:3241,wbtc:86420,steth:3198,sol:178});
   const [tvl,setTvl]      = useState({aave:27100000000,compound:3800000000,morpho:4200000000});
@@ -940,6 +997,21 @@ export default function RefiFi(){
     }
   };
 
+  const subscribeAlerts = async () => {
+    if (!alertEmail.includes('@')) { setAlertStatus('error'); return; }
+    if (!isConnected) { openConnectModal(); return; }
+    setAlertStatus('loading');
+    try {
+      const res = await fetch('/api/alerts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'subscribe', wallet: address, email: alertEmail }),
+      });
+      const data = await res.json();
+      setAlertStatus(data.ok ? 'success' : 'error');
+    } catch { setAlertStatus('error'); }
+  };
+
   const isDark = theme.mode === "dark";
   const T = {
     bg:      isDark ? "#04060f"                   : "#f0f2f8",
@@ -979,25 +1051,43 @@ export default function RefiFi(){
     @keyframes popIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
     @keyframes glowPulse{0%,100%{opacity:.08}50%{opacity:.15}}
     @keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+    @keyframes glowBreath{0%,100%{box-shadow:0 0 18px 2px rgba(79,255,176,.18),0 0 40px 4px rgba(79,255,176,.07)}50%{box-shadow:0 0 22px 4px rgba(79,255,176,.26),0 0 55px 8px rgba(79,255,176,.10)}}
     .fu{animation:fadeUp .32s ease both}
     .card{background:${T.card};border:1px solid ${T.border};border-radius:16px;transition:background .3s,border-color .2s}
     .card:hover{border-color:${T.cardHov}}
-    .btn{border:none;border-radius:12px;padding:13px 26px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;transition:all .18s;letter-spacing:.01em;display:inline-flex;align-items:center;justify-content:center;gap:7px}
-    .g{background:${T.accent};color:#04060f}.g:hover{transform:translateY(-1px)}.g:disabled{opacity:.4;cursor:not-allowed;transform:none}
+    .btn{border:none;border-radius:12px;padding:13px 26px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;transition:all .25s cubic-bezier(.4,0,.2,1);letter-spacing:.01em;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+    .g{
+      background:${T.accent};
+      color:#04060f;
+      box-shadow:0 0 18px 2px rgba(79,255,176,.18),0 0 40px 6px rgba(79,255,176,.07);
+    }
+    .g:hover{
+      transform:translateY(-1px);
+      box-shadow:0 0 28px 5px rgba(79,255,176,.35),0 0 60px 12px rgba(79,255,176,.14),0 2px 8px rgba(0,0,0,.3);
+    }
+    .g:active{
+      transform:translateY(0px);
+      box-shadow:0 0 20px 3px rgba(79,255,176,.25),0 0 44px 7px rgba(79,255,176,.10);
+    }
+    .g:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
     .dk{background:${T.card};color:${T.text2};border:1px solid ${T.border}}.dk:hover{border-color:${T.cardHov}}
     input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:3px;border-radius:2px;outline:none;cursor:pointer;background:${T.bg3}}
-    input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:${T.accent};cursor:pointer;transition:transform .1s}
-    input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.35)}
+    input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:${T.accent};cursor:pointer;transition:transform .1s;box-shadow:0 0 8px 2px rgba(79,255,176,.35)}
+    input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.35);box-shadow:0 0 14px 4px rgba(79,255,176,.5)}
     .xb{background:${T.card};border:1px solid ${T.border};border-radius:10px;padding:11px 13px;cursor:pointer;transition:all .15s;width:100%;text-align:left;display:flex;align-items:center;gap:9px;font-family:inherit}
-    .xb.on{border-color:${T.accentBd};background:${T.accentBg}}.xb:hover:not(.on){border-color:${T.cardHov}}
+    .xb.on{border-color:${T.accentBd};background:${T.accentBg};box-shadow:0 0 14px 2px rgba(79,255,176,.10)}.xb:hover:not(.on){border-color:${T.cardHov}}
     .pb{background:${T.card};border:1px solid ${T.border};border-radius:13px;padding:16px;cursor:pointer;transition:all .18s;width:100%;text-align:left;font-family:inherit}
-    .pb.on{background:${T.accentBg};border-color:${T.accentBd}}.pb:hover:not(.on){border-color:${T.cardHov}}
+    .pb.on{background:${T.accentBg};border-color:${T.accentBd};box-shadow:0 0 18px 3px rgba(79,255,176,.10)}.pb:hover:not(.on){border-color:${T.cardHov}}
     .ab{background:${T.card};border:1px solid ${T.border};border-radius:13px;padding:14px;cursor:pointer;transition:all .18s;width:100%;text-align:center;font-family:inherit}
-    .ab.on{background:${T.accentBg};border-color:${T.accentBd}}.ab:hover:not(.on){border-color:${T.cardHov}}
+    .ab.on{background:${T.accentBg};border-color:${T.accentBd};box-shadow:0 0 16px 3px rgba(79,255,176,.10)}.ab:hover:not(.on){border-color:${T.cardHov}}
     .tbtn{padding:8px 16px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;border:none;font-family:inherit;transition:all .15s}
-    .tbtn.on{background:${T.accentBg};color:${T.accent}}.tbtn.off{background:none;color:${T.text3}}.tbtn.off:hover{color:${T.text2}}
+    .tbtn.on{background:${T.accentBg};color:${T.accent};box-shadow:0 0 12px 2px rgba(79,255,176,.12)}.tbtn.off{background:none;color:${T.text3}}.tbtn.off:hover{color:${T.text2}}
     .mono{font-family:'JetBrains Mono',monospace}
     .orb{position:absolute;border-radius:50%;filter:blur(110px);pointer-events:none;animation:glowPulse 5s ease-in-out infinite}
+    .glow-badge{box-shadow:0 0 12px 2px rgba(79,255,176,.20),0 0 28px 4px rgba(79,255,176,.08);transition:box-shadow .25s}
+    .glow-badge:hover{box-shadow:0 0 18px 4px rgba(79,255,176,.32),0 0 40px 8px rgba(79,255,176,.14)}
+    .glow-badge-danger{box-shadow:0 0 12px 2px rgba(255,68,68,.20),0 0 28px 4px rgba(255,68,68,.08);transition:box-shadow .25s}
+    .glow-badge-warn{box-shadow:0 0 12px 2px rgba(240,180,41,.20),0 0 28px 4px rgba(240,180,41,.08);transition:box-shadow .25s}
     ::-webkit-scrollbar{width:3px;background:${T.bg}}::-webkit-scrollbar-thumb{background:${T.bg3};border-radius:2px}
     .cdd{position:absolute;top:calc(100% + 6px);right:0;background:${T.cdd};border:1px solid ${T.border};border-radius:12px;padding:5px;z-index:100;min-width:165px;animation:popIn .14s ease}
     select{font-family:inherit;outline:none}
@@ -1052,7 +1142,7 @@ export default function RefiFi(){
             <span style={{fontSize:10,fontWeight:700,color:testnet?"#9945FF":T.text2,letterSpacing:".04em"}}>{testnet?"Testnet":"Mainnet"}</span>
           </button>
 
-          <div style={{display:"flex",alignItems:"center",gap:5,padding:"4px 10px",borderRadius:100,background:T.accentBg,border:`1px solid ${T.accentBd}`}}>
+          <div className="glow-badge" style={{display:"flex",alignItems:"center",gap:5,padding:"4px 10px",borderRadius:100,background:T.accentBg,border:`1px solid ${T.accentBd}`}}>
             <span style={{width:5,height:5,borderRadius:"50%",background:T.accent,display:"inline-block"}}/>
             <span style={{fontSize:9,fontWeight:800,color:T.accent,letterSpacing:".08em",textTransform:"uppercase"}}>{rLd?"Loading…":rates.src+" · Live"}</span>
           </div>
@@ -1133,6 +1223,8 @@ export default function RefiFi(){
           ):(
             <button className="btn g" style={{padding:"8px 16px",fontSize:12}} onClick={openConnectModal}>Connect Wallet</button>
           )}
+          {/* Alert bell button */}
+          <button onClick={()=>{setShowAlerts(true);setAlertStatus(null);}} title="Set up position alerts" style={{width:34,height:34,borderRadius:9,background:"rgba(255,255,255,.05)",border:"1px solid rgba(255,255,255,.08)",cursor:"pointer",fontSize:15,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>🔔</button>
         </div>
       </nav>
 
@@ -1309,7 +1401,7 @@ export default function RefiFi(){
                     <input type="range" min={row.min} max={row.max} step={row.step} value={row.val} onChange={e=>row.set(+e.target.value)} style={{background:`linear-gradient(to right, ${row.clr} ${((row.val-row.min)/(row.max-row.min))*100}%, #111828 0%)`}}/>
                   </div>
                 ))}
-                <div style={{padding:"14px 16px",background:"rgba(79,255,176,.05)",border:"1px solid rgba(79,255,176,.13)",borderRadius:12,display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:4}}>
+                <div className="glow-badge" style={{padding:"14px 16px",background:"rgba(79,255,176,.05)",border:"1px solid rgba(79,255,176,.13)",borderRadius:12,display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:4}}>
                   <div><div style={{fontSize:10,color:"#2a3568",marginBottom:2,textTransform:"uppercase",letterSpacing:".06em"}}>Projected Annual Savings</div><div className="mono" style={{fontSize:24,fontWeight:900,color:"#4fffb0"}}>{fmtU(Math.round(savings))}</div></div>
                   <div style={{textAlign:"right"}}><div style={{fontSize:11,color:"#2a3568",marginBottom:2}}>{crate}% → {rLd?"…":dRate}%</div><div style={{fontSize:10,color:"#1a2035"}}>on {fmtU(debt)}</div></div>
                 </div>
@@ -1341,7 +1433,7 @@ export default function RefiFi(){
                       <div style={{display:"flex",alignItems:"center",gap:12}}>
                         <span style={{fontSize:28}}>{p.icon}</span>
                         <div style={{flex:1}}><div style={{fontSize:15,fontWeight:800,color:proto===p.id?"#4fffb0":"#b0bcd0",marginBottom:2}}>{p.name}</div><div style={{fontSize:11,color:"#2a3568"}}>TVL {p.tvl}</div></div>
-                        <div style={{textAlign:"right"}}><div className="mono" style={{fontSize:22,fontWeight:900,color:p.badgeClr}}>{rLd?"…":`${r}%`}</div><div style={{display:"inline-block",fontSize:9,fontWeight:800,padding:"2px 7px",borderRadius:100,background:`${p.badgeClr}15`,color:p.badgeClr,border:`1px solid ${p.badgeClr}30`}}>{p.badge}</div></div>
+                        <div style={{textAlign:"right"}}><div className="mono" style={{fontSize:22,fontWeight:900,color:p.badgeClr}}>{rLd?"…":`${r}%`}</div><div className="glow-badge" style={{display:"inline-block",fontSize:9,fontWeight:800,padding:"2px 7px",borderRadius:100,background:`${p.badgeClr}15`,color:p.badgeClr,border:`1px solid ${p.badgeClr}30`}}>{p.badge}</div></div>
                       </div>
                     </button>
                   );})}
