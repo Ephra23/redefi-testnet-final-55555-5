@@ -534,60 +534,6 @@ function OfframpTab({isConnected,openConnectModal,setTab,testnet}){
       }
       <div style={{textAlign:"center",marginTop:10,fontSize:11,color:"#2a3568"}}>Funds go directly to your bank · Powered by Sardine, Ramp, Transak, Coinbase & Stripe</div>
       {showModal&&<RampModal amount={amt} onClose={()=>setShowModal(false)}/>}
-
-      {/* ── Alerts Modal ── */}
-      {showAlerts&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(2,4,12,.85)",backdropFilter:"blur(14px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}} onClick={e=>e.target===e.currentTarget&&setShowAlerts(false)}>
-          <div style={{background:"#090d1b",border:"1px solid rgba(255,255,255,.09)",borderRadius:22,padding:28,width:"100%",maxWidth:420,position:"relative",animation:"popIn .18s ease"}}>
-            <button onClick={()=>setShowAlerts(false)} style={{position:"absolute",top:14,right:14,width:28,height:28,borderRadius:8,background:"rgba(255,255,255,.06)",border:"none",color:"#5a6280",fontSize:17,cursor:"pointer"}}>×</button>
-            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
-              <div style={{width:42,height:42,borderRadius:12,background:"rgba(79,255,176,.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>🔔</div>
-              <div>
-                <h3 style={{margin:0,fontSize:18,fontWeight:900,color:"#dde0f0"}}>Position Alerts</h3>
-                <p style={{margin:0,fontSize:12,color:"#4a5580"}}>Get notified before things go wrong</p>
-              </div>
-            </div>
-            <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:20}}>
-              {[
-                {icon:"🚨",label:"Liquidation Danger",desc:"Alert when health factor drops below 1.2",clr:"#ff4444"},
-                {icon:"⚠️",label:"Health Factor Warning",desc:"Alert when health factor drops below 1.5",clr:"#f0b429"},
-                {icon:"📊",label:"Weekly Summary",desc:"Your position performance every 7 days",clr:"#4fffb0"},
-                {icon:"📈",label:"Rate Change",desc:"Alert when Aave borrow rate moves ±0.5%",clr:"#00d4ff"},
-                {icon:"📉",label:"Collateral Price Drop",desc:"Alert when ETH/BTC drops more than 10%",clr:"#9945FF"},
-              ].map((a,i)=>(
-                <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"rgba(255,255,255,.03)",borderRadius:10,border:"1px solid rgba(255,255,255,.06)"}}>
-                  <span style={{fontSize:18,width:24,textAlign:"center"}}>{a.icon}</span>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:13,fontWeight:700,color:a.clr}}>{a.label}</div>
-                    <div style={{fontSize:11,color:"#2a3568"}}>{a.desc}</div>
-                  </div>
-                  <div style={{width:8,height:8,borderRadius:"50%",background:a.clr,flexShrink:0}}/>
-                </div>
-              ))}
-            </div>
-            {alertStatus==="success"?(
-              <div style={{padding:16,background:"rgba(79,255,176,.08)",border:"1px solid rgba(79,255,176,.3)",borderRadius:12,textAlign:"center"}}>
-                <div style={{fontSize:28,marginBottom:8}}>✅</div>
-                <div style={{fontSize:15,fontWeight:800,color:"#4fffb0",marginBottom:4}}>Alerts Activated!</div>
-                <div style={{fontSize:12,color:"#4a5580"}}>Check your inbox for a confirmation email</div>
-              </div>
-            ):(
-              <>
-                <div style={{marginBottom:10}}>
-                  <label style={{fontSize:12,color:"#4a5580",display:"block",marginBottom:6}}>YOUR EMAIL ADDRESS</label>
-                  <input type="email" placeholder="you@example.com" value={alertEmail} onChange={e=>setAlertEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&subscribeAlerts()} style={{width:"100%",background:"rgba(255,255,255,.04)",border:`1px solid ${alertStatus==="error"?"#ff4444":"rgba(255,255,255,.1)"}`,borderRadius:10,padding:"12px 14px",color:"#dde0f0",fontSize:14,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
-                  {alertStatus==="error"&&<p style={{margin:"6px 0 0",fontSize:11,color:"#ff4444"}}>Please enter a valid email address</p>}
-                </div>
-                {!isConnected&&<p style={{fontSize:12,color:"#f0b429",marginBottom:10}}>⚠️ Connect your wallet first to link alerts to your position</p>}
-                <button onClick={subscribeAlerts} disabled={alertStatus==="loading"} style={{width:"100%",padding:13,background:"#4fffb0",color:"#04060f",border:"none",borderRadius:11,fontSize:14,fontWeight:800,cursor:"pointer",fontFamily:"inherit",opacity:alertStatus==="loading"?0.6:1}}>
-                  {alertStatus==="loading"?"Setting up alerts…":"🔔 Activate All Alerts →"}
-                </button>
-                <p style={{margin:"10px 0 0",fontSize:11,color:"#1e2540",textAlign:"center"}}>Free forever · No spam · Unsubscribe anytime</p>
-              </>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -1536,6 +1482,59 @@ export default function RefiFi(){
       )}
 
       
+      {/* ── Alerts Modal ── */}
+      {showAlerts&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(2,4,12,.85)",backdropFilter:"blur(14px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}} onClick={e=>e.target===e.currentTarget&&setShowAlerts(false)}>
+          <div style={{background:"#090d1b",border:"1px solid rgba(255,255,255,.09)",borderRadius:22,padding:28,width:"100%",maxWidth:420,position:"relative",animation:"popIn .18s ease"}}>
+            <button onClick={()=>setShowAlerts(false)} style={{position:"absolute",top:14,right:14,width:28,height:28,borderRadius:8,background:"rgba(255,255,255,.06)",border:"none",color:"#5a6280",fontSize:17,cursor:"pointer"}}>×</button>
+            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+              <div style={{width:42,height:42,borderRadius:12,background:"rgba(79,255,176,.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>🔔</div>
+              <div>
+                <h3 style={{margin:0,fontSize:18,fontWeight:900,color:"#dde0f0"}}>Position Alerts</h3>
+                <p style={{margin:0,fontSize:12,color:"#4a5580"}}>Get notified before things go wrong</p>
+              </div>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:20}}>
+              {[
+                {icon:"🚨",label:"Liquidation Danger",desc:"Alert when health factor drops below 1.2",clr:"#ff4444"},
+                {icon:"⚠️",label:"Health Factor Warning",desc:"Alert when health factor drops below 1.5",clr:"#f0b429"},
+                {icon:"📊",label:"Weekly Summary",desc:"Your position performance every 7 days",clr:"#4fffb0"},
+                {icon:"📈",label:"Rate Change",desc:"Alert when Aave borrow rate moves ±0.5%",clr:"#00d4ff"},
+                {icon:"📉",label:"Collateral Price Drop",desc:"Alert when ETH/BTC drops more than 10%",clr:"#9945FF"},
+              ].map((a,i)=>(
+                <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"rgba(255,255,255,.03)",borderRadius:10,border:"1px solid rgba(255,255,255,.06)"}}>
+                  <span style={{fontSize:18,width:24,textAlign:"center"}}>{a.icon}</span>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:13,fontWeight:700,color:a.clr}}>{a.label}</div>
+                    <div style={{fontSize:11,color:"#2a3568"}}>{a.desc}</div>
+                  </div>
+                  <div style={{width:8,height:8,borderRadius:"50%",background:a.clr,flexShrink:0}}/>
+                </div>
+              ))}
+            </div>
+            {alertStatus==="success"?(
+              <div style={{padding:16,background:"rgba(79,255,176,.08)",border:"1px solid rgba(79,255,176,.3)",borderRadius:12,textAlign:"center"}}>
+                <div style={{fontSize:28,marginBottom:8}}>✅</div>
+                <div style={{fontSize:15,fontWeight:800,color:"#4fffb0",marginBottom:4}}>Alerts Activated!</div>
+                <div style={{fontSize:12,color:"#4a5580"}}>Check your inbox for a confirmation email</div>
+              </div>
+            ):(
+              <>
+                <div style={{marginBottom:10}}>
+                  <label style={{fontSize:12,color:"#4a5580",display:"block",marginBottom:6}}>YOUR EMAIL ADDRESS</label>
+                  <input type="email" placeholder="you@example.com" value={alertEmail} onChange={e=>setAlertEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&subscribeAlerts()} style={{width:"100%",background:"rgba(255,255,255,.04)",border:`1px solid ${alertStatus==="error"?"#ff4444":"rgba(255,255,255,.1)"}`,borderRadius:10,padding:"12px 14px",color:"#dde0f0",fontSize:14,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+                  {alertStatus==="error"&&<p style={{margin:"6px 0 0",fontSize:11,color:"#ff4444"}}>Please enter a valid email address</p>}
+                </div>
+                {!isConnected&&<p style={{fontSize:12,color:"#f0b429",marginBottom:10}}>⚠️ Connect your wallet first to link alerts to your position</p>}
+                <button onClick={subscribeAlerts} disabled={alertStatus==="loading"} style={{width:"100%",padding:13,background:"#4fffb0",color:"#04060f",border:"none",borderRadius:11,fontSize:14,fontWeight:800,cursor:"pointer",fontFamily:"inherit",opacity:alertStatus==="loading"?0.6:1}}>
+                  {alertStatus==="loading"?"Setting up alerts…":"🔔 Activate All Alerts →"}
+                </button>
+                <p style={{margin:"10px 0 0",fontSize:11,color:"#1e2540",textAlign:"center"}}>Free forever · No spam · Unsubscribe anytime</p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
